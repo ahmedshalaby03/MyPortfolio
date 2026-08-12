@@ -1,6 +1,9 @@
 (() => {
   'use strict';
 
+  const PROJECT_AUTOPLAY_SPEED = 6200;
+  const PROJECT_INTERACTION_SPEED = 720;
+
   const skillData = [
     {
       category: 'Programming Languages',
@@ -92,6 +95,19 @@
     }
   ];
 
+  /*
+    Add a simple project gallery with as many images as needed:
+    gallery: [
+      { src: 'assets/projects/project/screen-1.webp', alt: 'Dashboard overview', caption: 'Main dashboard' },
+      { src: 'assets/projects/project/screen-2.webp', alt: 'Project form', caption: 'Create-project workflow' }
+    ]
+
+    Add optional `detailBlocks` to any project to build a longer case study:
+    { type: 'text', heading: 'Architecture', paragraphs: ['...', '...'] }
+    { type: 'list', heading: 'Challenges', items: ['...', '...'] }
+    { type: 'image', heading: 'Dashboard', src: 'assets/projects/image.webp', alt: '...', caption: '...' }
+    { type: 'gallery', heading: 'Project screens', images: [{ src: '...', alt: '...', caption: '...' }] }
+  */
   const projectData = [
     {
       id: 'smart-invest',
@@ -138,6 +154,34 @@
 
       decisions:
         'Separated the core government investment workflows from the AI layer so transactional operations remain secure and deterministic, while RAG and specialized agents provide search, analysis, risk insights, and decision support.',
+
+      detailBlocks: [
+        {
+          type: 'text',
+          heading: 'End-to-end workflow',
+          paragraphs: [
+            'The platform connects planning, approvals, procurement, execution, and reporting in one traceable project lifecycle.',
+            'Each role receives focused actions and dashboards while shared project data remains consistent across departments.'
+          ]
+        },
+        {
+          type: 'list',
+          heading: 'Engineering focus',
+          items: [
+            'Clear boundaries between transactional workflows and AI-assisted analysis',
+            'Role-aware interfaces and authorization at both API and UI levels',
+            'Reporting-ready data for operational and financial dashboards'
+          ]
+        }
+      ],
+
+      gallery: [
+        {
+          src: 'assets/projects/smart-invest.webp',
+          alt: 'SmartInvest platform overview',
+          caption: 'SmartInvest platform overview'
+        }
+      ],
 
       githubUrl: 'https://github.com/ahmedshalaby03/SmartInvest-Platform',
       liveDemoUrl: ''
@@ -327,6 +371,12 @@
     resumeAutoplayTimer: null,
     carouselLocked: false,
     modalTransitioning: false,
+    modalGalleries: [],
+    imageViewerOpen: false,
+    imageViewerImages: [],
+    imageViewerIndex: 0,
+    imageViewerTrigger: null,
+    imageViewerPointerStart: null,
     laptopOpen: true,
     laptopAnimating: false,
     laptopTimeline: null
@@ -350,7 +400,10 @@
     projectNext: document.querySelector('.project-next'),
     modal: document.getElementById('project-modal'),
     modalDialog: document.querySelector('.modal-dialog'),
+    modalContent: document.getElementById('modal-content'),
     modalVisual: document.getElementById('modal-visual'),
+    modalDetails: document.getElementById('modal-details'),
+    modalScrollProgress: document.getElementById('modal-scroll-progress'),
     modalCategory: document.getElementById('modal-category'),
     modalTitle: document.getElementById('modal-title'),
     modalDescription: document.getElementById('modal-description'),
@@ -363,6 +416,17 @@
     modalPrev: document.getElementById('modal-prev'),
     modalNext: document.getElementById('modal-next'),
     modalCounter: document.getElementById('modal-counter'),
+    imageViewer: document.getElementById('image-viewer'),
+    imageViewerDialog: document.getElementById('image-viewer-dialog'),
+    imageViewerStage: document.getElementById('image-viewer-stage'),
+    imageViewerFigure: document.getElementById('image-viewer-figure'),
+    imageViewerImage: document.getElementById('image-viewer-image'),
+    imageViewerCaption: document.getElementById('image-viewer-caption'),
+    imageViewerCounter: document.getElementById('image-viewer-counter'),
+    imageViewerThumbnails: document.getElementById('image-viewer-thumbnails'),
+    imageViewerClose: document.querySelector('[data-image-viewer-close].image-viewer-close'),
+    imageViewerPrev: document.getElementById('image-viewer-prev'),
+    imageViewerNext: document.getElementById('image-viewer-next'),
     liveRegion: document.getElementById('live-region'),
     laptopScene: document.getElementById('laptop-scene'),
     laptop: document.getElementById('laptop'),
@@ -681,7 +745,7 @@
     });
 
     window.addEventListener('resize', () => {
-      if (window.innerWidth > 820 && state.menuOpen) closeMenu({ restoreFocus: false });
+      if (window.innerWidth > 900 && state.menuOpen) closeMenu({ restoreFocus: false });
     }, { passive: true });
 
     const updateHeader = () => {
@@ -1000,7 +1064,7 @@
     });
 
     gsap.from('.timeline-item', {
-      x: 36,
+      ...(window.matchMedia('(max-width: 600px)').matches ? { y: 36 } : { x: 36 }),
       opacity: 0,
       duration: 0.75,
       stagger: 0.12,
@@ -1100,7 +1164,7 @@
     window.clearTimeout(state.resumeAutoplayTimer);
     state.resumeAutoplayTimer = window.setTimeout(() => {
       if (state.carouselLocked || elements.modal?.classList.contains('is-open')) return;
-      state.swiper.params.speed = 4200;
+      state.swiper.params.speed = PROJECT_AUTOPLAY_SPEED;
       state.swiper.autoplay?.start();
     }, delay);
   }
@@ -1114,8 +1178,8 @@
 
     const increment = direction === 'next' ? 1 : -1;
     const targetIndex = (state.swiper.realIndex + increment + projectData.length) % projectData.length;
-    state.swiper.params.speed = state.reducedMotion ? 0 : 560;
-    state.swiper.slideToLoop(targetIndex, state.reducedMotion ? 0 : 560, true);
+    state.swiper.params.speed = state.reducedMotion ? 0 : PROJECT_INTERACTION_SPEED;
+    state.swiper.slideToLoop(targetIndex, state.reducedMotion ? 0 : PROJECT_INTERACTION_SPEED, true);
 
     elements.liveRegion.textContent = `${projectData[targetIndex].title} selected.`;
   }
@@ -1128,7 +1192,7 @@
       spaceBetween: 18,
       loop: true,
       loopAdditionalSlides: Math.min(4, projectData.length),
-      speed: state.reducedMotion ? 0 : 4200,
+      speed: state.reducedMotion ? 0 : PROJECT_AUTOPLAY_SPEED,
       grabCursor: true,
       watchSlidesProgress: true,
       keyboard: {
@@ -1155,7 +1219,7 @@
       on: {
         touchStart(swiper) {
           swiper.autoplay?.stop();
-          swiper.params.speed = 560;
+          swiper.params.speed = PROJECT_INTERACTION_SPEED;
           state.carouselLocked = false;
         },
         touchEnd() {
@@ -1194,17 +1258,255 @@
     )].filter(element => !element.hasAttribute('hidden') && element.offsetParent !== null);
   }
 
+  function renderModalMedia(image, galleryId, imageIndex) {
+    if (!image || typeof image !== 'object' || !image.src) return '';
+    const label = image.caption || image.alt || `Project image ${imageIndex + 1}`;
+
+    return `
+      <button
+        class="modal-detail-media modal-gallery-card"
+        type="button"
+        data-gallery-id="${galleryId}"
+        data-gallery-index="${imageIndex}"
+        aria-label="Open ${escapeHtml(label)} in image viewer"
+      >
+        <span class="modal-detail-media-visual">
+          <img src="${escapeHtml(image.src)}" alt="${escapeHtml(image.alt || '')}" loading="lazy" decoding="async" data-modal-image>
+          <span class="modal-gallery-number">${String(imageIndex + 1).padStart(2, '0')}</span>
+          <span class="modal-gallery-expand" aria-hidden="true"><i class="fas fa-expand"></i></span>
+        </span>
+        <span class="modal-detail-media-caption">${escapeHtml(label)}</span>
+      </button>
+    `;
+  }
+
+  function renderModalDetailBlock(block, galleryId = -1, galleryImages = []) {
+    if (!block || typeof block !== 'object') return '';
+    const heading = block.heading ? `<h3>${escapeHtml(block.heading)}</h3>` : '';
+
+    if (block.type === 'text') {
+      const paragraphs = Array.isArray(block.paragraphs) ? block.paragraphs : [];
+      const content = paragraphs
+        .filter(Boolean)
+        .map(paragraph => `<p>${escapeHtml(paragraph)}</p>`)
+        .join('');
+      return content ? `<section class="modal-detail-block modal-detail-text">${heading}${content}</section>` : '';
+    }
+
+    if (block.type === 'list') {
+      const items = Array.isArray(block.items) ? block.items : [];
+      const content = items.filter(Boolean).map(item => `<li>${escapeHtml(item)}</li>`).join('');
+      return content ? `<section class="modal-detail-block">${heading}<ul class="modal-detail-list">${content}</ul></section>` : '';
+    }
+
+    if (block.type === 'image') {
+      const media = renderModalMedia(block, galleryId, 0);
+      return media ? `<section class="modal-detail-block">${heading}${media}</section>` : '';
+    }
+
+    if (block.type === 'gallery') {
+      const images = galleryImages.map((image, index) => renderModalMedia(image, galleryId, index)).filter(Boolean);
+      if (!images.length) return '';
+      const singleClass = images.length === 1 ? ' is-single' : '';
+      return `<section class="modal-detail-block">${heading}<div class="modal-detail-gallery${singleClass}">${images.join('')}</div></section>`;
+    }
+
+    return '';
+  }
+
+  function renderModalDetails(project) {
+    if (!elements.modalDetails) return;
+    const blocks = Array.isArray(project?.detailBlocks) ? [...project.detailBlocks] : [];
+    const projectGallery = Array.isArray(project?.gallery) && project.gallery.length
+      ? project.gallery
+      : project?.image
+        ? [{ src: project.image, alt: project.imageAlt || '', caption: 'Project overview' }]
+        : [];
+    if (projectGallery.length) blocks.push({ type: 'gallery', heading: 'Project gallery', images: projectGallery });
+
+    state.modalGalleries = [];
+    const content = blocks.map(block => {
+      if (!block || !['image', 'gallery'].includes(block.type)) return renderModalDetailBlock(block);
+      const images = (block.type === 'image' ? [block] : block.images || [])
+        .filter(image => image && typeof image === 'object' && image.src);
+      if (!images.length) return '';
+      const galleryId = state.modalGalleries.push(images) - 1;
+      return renderModalDetailBlock(block, galleryId, images);
+    }).join('');
+
+    elements.modalDetails.innerHTML = content;
+    elements.modalDetails.hidden = !content;
+  }
+
+  function bindImageFallbacks(container) {
+    container?.querySelectorAll('[data-modal-image]').forEach(image => {
+      image.addEventListener('error', () => {
+        if (image.dataset.fallbackApplied === 'true') return;
+        image.dataset.fallbackApplied = 'true';
+        image.src = 'assets/projects/project-fallback.svg';
+      });
+    });
+  }
+
+  function bindModalImageFallbacks() {
+    bindImageFallbacks(elements.modalContent);
+  }
+
+  function updateModalScrollProgress() {
+    if (!elements.modalContent || !elements.modalScrollProgress) return;
+    const maxScroll = elements.modalContent.scrollHeight - elements.modalContent.clientHeight;
+    const progress = maxScroll > 0 ? elements.modalContent.scrollTop / maxScroll : 0;
+    elements.modalScrollProgress.style.transform = `scaleX(${Math.min(1, Math.max(0, progress))})`;
+  }
+
+  function resetModalScroll() {
+    if (!elements.modalContent) return;
+    elements.modalContent.scrollTop = 0;
+    updateModalScrollProgress();
+    window.requestAnimationFrame(updateModalScrollProgress);
+  }
+
+  function handleModalScrollKeys(event) {
+    if (!elements.modalContent || !elements.modal?.classList.contains('is-open')) return;
+    const scrollStep = elements.modalContent.clientHeight * 0.82;
+    const scrollOptions = { behavior: state.reducedMotion ? 'auto' : 'smooth' };
+
+    if (event.key === 'PageDown') {
+      event.preventDefault();
+      elements.modalContent.scrollBy({ ...scrollOptions, top: scrollStep });
+    } else if (event.key === 'PageUp') {
+      event.preventDefault();
+      elements.modalContent.scrollBy({ ...scrollOptions, top: -scrollStep });
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      elements.modalContent.scrollTo({ ...scrollOptions, top: 0 });
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      elements.modalContent.scrollTo({ ...scrollOptions, top: elements.modalContent.scrollHeight });
+    }
+  }
+
+  function renderImageViewer() {
+    const images = state.imageViewerImages;
+    const total = images.length;
+    if (!total || !elements.imageViewerImage) return;
+
+    state.imageViewerIndex = (state.imageViewerIndex + total) % total;
+    const image = images[state.imageViewerIndex];
+    const label = image.caption || image.alt || `Project image ${state.imageViewerIndex + 1}`;
+
+    elements.imageViewerImage.dataset.fallbackApplied = 'false';
+    elements.imageViewerImage.src = image.src;
+    elements.imageViewerImage.alt = image.alt || '';
+    elements.imageViewerImage.draggable = false;
+    elements.imageViewerCaption.textContent = image.caption || '';
+    elements.imageViewerCaption.hidden = !image.caption;
+    elements.imageViewerCounter.textContent = `Image ${state.imageViewerIndex + 1} of ${total}`;
+    elements.imageViewerPrev.disabled = total < 2;
+    elements.imageViewerNext.disabled = total < 2;
+
+    if (elements.imageViewerThumbnails.children.length !== total) {
+      elements.imageViewerThumbnails.innerHTML = images.map((thumbnail, index) => `
+        <button type="button" data-viewer-thumbnail="${index}" aria-label="View image ${index + 1}: ${escapeHtml(thumbnail.caption || thumbnail.alt || '')}">
+          <img src="${escapeHtml(thumbnail.src)}" alt="" loading="lazy" decoding="async" data-modal-image>
+          <span>${String(index + 1).padStart(2, '0')}</span>
+        </button>
+      `).join('');
+      bindImageFallbacks(elements.imageViewerThumbnails);
+    }
+
+    elements.imageViewerThumbnails.querySelectorAll('[data-viewer-thumbnail]').forEach((thumbnail, index) => {
+      const active = index === state.imageViewerIndex;
+      thumbnail.setAttribute('aria-current', String(active));
+      thumbnail.classList.toggle('is-active', active);
+    });
+
+    const activeThumbnail = elements.imageViewerThumbnails.querySelector('.is-active');
+    activeThumbnail?.scrollIntoView({ behavior: state.reducedMotion ? 'auto' : 'smooth', block: 'nearest', inline: 'center' });
+
+    if (!state.reducedMotion && typeof gsap !== 'undefined') {
+      gsap.fromTo(elements.imageViewerFigure,
+        { opacity: 0.45, scale: 0.985 },
+        { opacity: 1, scale: 1, duration: 0.4, ease: 'power3.out', clearProps: 'transform,opacity' }
+      );
+    }
+
+    elements.liveRegion.textContent = `${label}. Image ${state.imageViewerIndex + 1} of ${total}.`;
+  }
+
+  function openImageViewer(galleryId, imageIndex, trigger) {
+    const images = state.modalGalleries[galleryId];
+    if (!elements.imageViewer || !Array.isArray(images) || !images.length) return;
+
+    state.imageViewerOpen = true;
+    state.imageViewerImages = images;
+    state.imageViewerIndex = imageIndex;
+    state.imageViewerTrigger = trigger || document.activeElement;
+    elements.imageViewerThumbnails.innerHTML = '';
+    renderImageViewer();
+
+    elements.modal?.setAttribute('aria-hidden', 'true');
+    if (elements.modal) {
+      elements.modal.setAttribute('inert', '');
+      elements.modal.inert = true;
+    }
+    elements.imageViewer.classList.add('is-open');
+    elements.imageViewer.setAttribute('aria-hidden', 'false');
+    elements.body.classList.add('image-viewer-open');
+    window.requestAnimationFrame(() => elements.imageViewerClose?.focus());
+  }
+
+  function closeImageViewer({ restoreFocus = true } = {}) {
+    if (!state.imageViewerOpen || !elements.imageViewer) return;
+    const trigger = state.imageViewerTrigger;
+
+    state.imageViewerOpen = false;
+    state.imageViewerPointerStart = null;
+    elements.imageViewer.classList.remove('is-open');
+    elements.imageViewer.setAttribute('aria-hidden', 'true');
+    elements.body.classList.remove('image-viewer-open');
+
+    if (elements.modal) {
+      elements.modal.inert = false;
+      elements.modal.removeAttribute('inert');
+      if (elements.modal.classList.contains('is-open')) elements.modal.setAttribute('aria-hidden', 'false');
+    }
+
+    if (restoreFocus) {
+      window.requestAnimationFrame(() => {
+        if (trigger?.isConnected) trigger.focus();
+        else elements.modalContent?.focus({ preventScroll: true });
+      });
+    }
+  }
+
+  function stepImageViewer(direction) {
+    if (!state.imageViewerOpen || state.imageViewerImages.length < 2) return;
+    state.imageViewerIndex += direction;
+    renderImageViewer();
+  }
+
+  function handleImageViewerPointerDown(event) {
+    if (!event.isPrimary) return;
+    state.imageViewerPointerStart = { id: event.pointerId, x: event.clientX, y: event.clientY };
+  }
+
+  function handleImageViewerPointerUp(event) {
+    const start = state.imageViewerPointerStart;
+    state.imageViewerPointerStart = null;
+    if (!start || start.id !== event.pointerId) return;
+
+    const deltaX = event.clientX - start.x;
+    const deltaY = event.clientY - start.y;
+    if (Math.abs(deltaX) < 50 || Math.abs(deltaX) <= Math.abs(deltaY) * 1.2) return;
+    stepImageViewer(deltaX < 0 ? 1 : -1);
+  }
+
   function renderModal(index) {
     const project = projectData[index];
     if (!project) return;
 
-    elements.modalVisual.innerHTML = `<img src="${escapeHtml(project.image)}" alt="${escapeHtml(project.imageAlt)}" decoding="async" data-modal-project-image>`;
-    const modalImage = elements.modalVisual.querySelector('[data-modal-project-image]');
-    modalImage?.addEventListener('error', () => {
-      if (modalImage.dataset.fallbackApplied === 'true') return;
-      modalImage.dataset.fallbackApplied = 'true';
-      modalImage.src = 'assets/projects/project-fallback.svg';
-    });
+    elements.modalVisual.innerHTML = `<img src="${escapeHtml(project.image)}" alt="${escapeHtml(project.imageAlt)}" decoding="async" data-modal-image>`;
 
     elements.modalCategory.textContent = project.category;
     elements.modalTitle.textContent = project.title;
@@ -1215,6 +1517,7 @@
     elements.modalFeatures.innerHTML = project.features.map(feature => `<li>${escapeHtml(feature)}</li>`).join('');
     elements.modalTechnologies.innerHTML = project.technologies.map(tech => `<span>${escapeHtml(tech)}</span>`).join('');
     elements.modalCounter.textContent = `${String(index + 1).padStart(2, '0')} / ${String(projectData.length).padStart(2, '0')}`;
+    renderModalDetails(project);
 
     const links = [];
     if (project.githubUrl) {
@@ -1226,14 +1529,17 @@
     elements.modalLinks.innerHTML = links.length
       ? links.join('')
       : '<p class="project-link-note">Repository and live-demo links have not been supplied for this project yet.</p>';
+
+    bindModalImageFallbacks();
+    resetModalScroll();
   }
 
   function animateModalContent() {
     if (state.reducedMotion || typeof gsap === 'undefined') return;
     gsap.fromTo(
-      elements.modalDialog.querySelectorAll('.modal-visual, .modal-category, .modal-copy h2, .modal-description, .modal-section, .modal-links'),
+      elements.modalDialog.querySelectorAll('.modal-visual, .modal-category, .modal-copy h2, .modal-description, .modal-section, .modal-links, .modal-detail-block'),
       { y: 20, opacity: 0 },
-      { y: 0, opacity: 1, duration: 0.45, stagger: 0.045, ease: 'power3.out', clearProps: 'transform,opacity' }
+      { y: 0, opacity: 1, duration: 0.62, stagger: 0.06, ease: 'power3.out', clearProps: 'transform,opacity' }
     );
   }
 
@@ -1254,16 +1560,16 @@
     if (typeof gsap !== 'undefined' && !state.reducedMotion) {
       state.modalTimeline = gsap.timeline({
         onComplete: () => {
-          elements.modalDialog.focus();
+          elements.modalContent?.focus({ preventScroll: true });
           animateModalContent();
         }
       })
-        .to(elements.modal, { opacity: 1, duration: 0.28, ease: 'power2.out' })
-        .to(elements.modalDialog, { x: 0, scale: 1, duration: 0.62, ease: 'power4.out' }, '<0.02');
+        .to(elements.modal, { opacity: 1, duration: 0.36, ease: 'power2.out' })
+        .to(elements.modalDialog, { x: 0, scale: 1, duration: 0.78, ease: 'power4.out' }, '<0.02');
     } else {
       elements.modal.style.opacity = '1';
       elements.modalDialog.style.transform = 'none';
-      elements.modalDialog.focus();
+      elements.modalContent?.focus({ preventScroll: true });
     }
 
     elements.liveRegion.textContent = `${projectData[index].title} details opened.`;
@@ -1271,6 +1577,7 @@
 
   function closeModal() {
     if (!elements.modal?.classList.contains('is-open')) return;
+    if (state.imageViewerOpen) closeImageViewer({ restoreFocus: false });
 
     const complete = () => {
       elements.modal.classList.remove('is-open');
@@ -1278,6 +1585,7 @@
       elements.body.classList.remove('modal-open');
       elements.modal.removeAttribute('style');
       elements.modalDialog.removeAttribute('style');
+      resetModalScroll();
       state.lenis?.start();
       scheduleAutoplayResume(500);
       state.lastFocusedElement?.focus?.();
@@ -1288,8 +1596,8 @@
 
     if (typeof gsap !== 'undefined' && !state.reducedMotion) {
       state.modalTimeline = gsap.timeline({ onComplete: complete })
-        .to(elements.modalDialog, { x: 50, scale: 0.985, opacity: 0, duration: 0.36, ease: 'power2.in' })
-        .to(elements.modal, { opacity: 0, duration: 0.25, ease: 'power2.in' }, '-=0.12');
+        .to(elements.modalDialog, { x: 50, scale: 0.985, opacity: 0, duration: 0.48, ease: 'power2.in' })
+        .to(elements.modal, { opacity: 0, duration: 0.32, ease: 'power2.in' }, '-=0.14');
     } else {
       complete();
     }
@@ -1297,6 +1605,7 @@
 
   function changeModalProject(direction) {
     if (state.modalTransitioning) return;
+    if (state.imageViewerOpen) closeImageViewer({ restoreFocus: false });
     state.modalTransitioning = true;
     state.activeProject = (state.activeProject + direction + projectData.length) % projectData.length;
 
@@ -1310,13 +1619,13 @@
       gsap.to(content, {
         x: direction > 0 ? -24 : 24,
         opacity: 0,
-        duration: 0.18,
+        duration: 0.28,
         ease: 'power2.in',
         onComplete: () => {
           renderModal(state.activeProject);
           gsap.fromTo(content,
             { x: direction > 0 ? 24 : -24, opacity: 0 },
-            { x: 0, opacity: 1, duration: 0.35, ease: 'power3.out', onComplete: finish }
+            { x: 0, opacity: 1, duration: 0.52, ease: 'power3.out', onComplete: finish }
           );
         }
       });
@@ -1327,6 +1636,42 @@
   }
 
   function initModal() {
+    elements.modalContent?.addEventListener('scroll', updateModalScrollProgress, { passive: true });
+    elements.modalContent?.addEventListener('keydown', handleModalScrollKeys);
+    window.addEventListener('resize', updateModalScrollProgress, { passive: true });
+
+    elements.modalDetails?.addEventListener('click', event => {
+      const card = event.target.closest('[data-gallery-id][data-gallery-index]');
+      if (!card) return;
+      openImageViewer(Number(card.dataset.galleryId), Number(card.dataset.galleryIndex), card);
+    });
+
+    elements.imageViewerThumbnails?.addEventListener('click', event => {
+      const thumbnail = event.target.closest('[data-viewer-thumbnail]');
+      if (!thumbnail) return;
+      state.imageViewerIndex = Number(thumbnail.dataset.viewerThumbnail);
+      renderImageViewer();
+      thumbnail.focus();
+    });
+
+    document.querySelectorAll('[data-image-viewer-close]').forEach(element => {
+      element.addEventListener('click', () => closeImageViewer());
+    });
+
+    elements.imageViewerPrev?.addEventListener('click', () => stepImageViewer(-1));
+    elements.imageViewerNext?.addEventListener('click', () => stepImageViewer(1));
+    elements.imageViewerStage?.addEventListener('pointerdown', handleImageViewerPointerDown, { passive: true });
+    elements.imageViewerStage?.addEventListener('pointerup', handleImageViewerPointerUp, { passive: true });
+    elements.imageViewerStage?.addEventListener('pointercancel', () => {
+      state.imageViewerPointerStart = null;
+    }, { passive: true });
+
+    elements.imageViewerImage?.addEventListener('error', () => {
+      if (elements.imageViewerImage.dataset.fallbackApplied === 'true') return;
+      elements.imageViewerImage.dataset.fallbackApplied = 'true';
+      elements.imageViewerImage.src = 'assets/projects/project-fallback.svg';
+    });
+
     elements.projectsTrack?.addEventListener('click', event => {
       const card = event.target.closest('.project-card');
       if (!card) return;
@@ -1348,6 +1693,45 @@
     elements.modalNext?.addEventListener('click', () => changeModalProject(1));
 
     document.addEventListener('keydown', event => {
+      if (state.imageViewerOpen) {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          closeImageViewer();
+          return;
+        }
+
+        if (event.key === 'ArrowLeft') {
+          event.preventDefault();
+          stepImageViewer(-1);
+          return;
+        }
+
+        if (event.key === 'ArrowRight') {
+          event.preventDefault();
+          stepImageViewer(1);
+          return;
+        }
+
+        if (event.key === 'Tab') {
+          const focusable = getFocusableElements(elements.imageViewerDialog);
+          if (!focusable.length) return;
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+
+          if (!elements.imageViewerDialog.contains(document.activeElement)) {
+            event.preventDefault();
+            first.focus();
+          } else if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        }
+        return;
+      }
+
       if (!elements.modal?.classList.contains('is-open')) return;
 
       if (event.key === 'Escape') {

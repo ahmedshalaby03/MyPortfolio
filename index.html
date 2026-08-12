@@ -279,10 +279,14 @@
     <div class="modal-backdrop" data-modal-close></div>
     <section class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1">
       <div class="modal-toolbar">
-        <p>Project case study</p>
+        <div class="modal-toolbar-heading">
+          <p>Project case study</p>
+          <span><i class="fas fa-arrow-down" aria-hidden="true"></i> Scroll for full details</span>
+        </div>
         <button class="modal-close" type="button" aria-label="Close project details" data-modal-close><i class="fas fa-xmark"></i></button>
+        <span class="modal-scroll-progress" aria-hidden="true"><span id="modal-scroll-progress"></span></span>
       </div>
-      <div class="modal-content">
+      <div class="modal-content" id="modal-content" data-lenis-prevent tabindex="0" aria-label="Scrollable project details">
         <div class="modal-visual" id="modal-visual"></div>
         <div class="modal-copy">
           <p class="modal-category" id="modal-category"></p>
@@ -313,12 +317,43 @@
           </div>
           <div class="modal-links" id="modal-links"></div>
         </div>
+        <div class="modal-details" id="modal-details" hidden></div>
       </div>
       <div class="modal-navigation">
         <button type="button" id="modal-prev" aria-label="View previous project"><i class="fas fa-arrow-left"></i> Previous</button>
         <span id="modal-counter"></span>
         <button type="button" id="modal-next" aria-label="View next project">Next <i class="fas fa-arrow-right"></i></button>
       </div>
+    </section>
+  </div>
+
+  <div class="image-viewer" id="image-viewer" aria-hidden="true">
+    <div class="image-viewer-backdrop" data-image-viewer-close></div>
+    <section class="image-viewer-dialog" id="image-viewer-dialog" role="dialog" aria-modal="true" aria-labelledby="image-viewer-title" tabindex="-1">
+      <div class="image-viewer-toolbar">
+        <div>
+          <p id="image-viewer-title">Project gallery</p>
+          <span id="image-viewer-counter" aria-live="polite"></span>
+        </div>
+        <button class="image-viewer-close" type="button" aria-label="Close image gallery" data-image-viewer-close>
+          <i class="fas fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div class="image-viewer-stage" id="image-viewer-stage">
+        <button class="image-viewer-arrow" id="image-viewer-prev" type="button" aria-label="View previous image">
+          <i class="fas fa-arrow-left" aria-hidden="true"></i>
+        </button>
+        <figure class="image-viewer-figure" id="image-viewer-figure">
+          <img id="image-viewer-image" alt="">
+          <figcaption id="image-viewer-caption"></figcaption>
+        </figure>
+        <button class="image-viewer-arrow" id="image-viewer-next" type="button" aria-label="View next image">
+          <i class="fas fa-arrow-right" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div class="image-viewer-thumbnails" id="image-viewer-thumbnails" aria-label="Project image thumbnails"></div>
     </section>
   </div>
 
